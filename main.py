@@ -256,7 +256,7 @@ if tab3.button("Save Program", disabled=st.session_state['button_enable']):
 
 # Tab 4 Update program
 
-patient_update = tab4.text_input("Добавете името на пациента", help = 'Името на пациента')
+patient_update = tab4.text_input("Добавете името на пациента", help = 'Името на пациента', value = 'Kris Dukov')
 
 current_program_json_update = requests.get(backend+ f'programs_postgr/{patient_update}').json()
 list_exercises = []
