@@ -207,6 +207,7 @@ if enable_dashboard:
 
 
 # TAB 3 CONFIGURATOR
+tab3.write('Използвайте за да добавите програма за нов пациент или да добавите упражнение на съществуващ пациент')
 patient = tab3.text_input("Patient's name", help = 'Името на пациента')
 
 tuple_exercises = ('balance_left','balance_vstrani','legnal_ruce','legnal_ruce2','legnal_ruce3','legnal_ruce4','legnal_kraka','legnal_kraka2','koremna_presa','legnal_ruceikraka','sednal_ruce','sednal_ruceikraka','sednal_ruceikraka2','sednal_prav','preden_klek','preden_klek2')
@@ -255,7 +256,7 @@ if tab3.button("Save Program", disabled=st.session_state['button_enable']):
         del st.session_state[key]
 
 # Tab 4 Update program
-
+tab4.write('Използвайте само за да промените стойност от съществуваща програма или да премахнете упражнение')
 patient_update = tab4.text_input("Добавете името на пациента", help = 'Името на пациента', value = 'Kris Dukov')
 
 current_program_json_update = requests.get(backend+ f'programs_postgr/{patient_update}').json()
@@ -278,3 +279,7 @@ if tab4.button("Update Program"):
     full_program_json_update = {'patient': patient_update, 'program_json': current_program_json_update}
     post_request = requests.post(backend + 'update_programs_postgr', json = full_program_json_update)
     tab4.success('Program saved', icon="✅")
+
+if tab4.button("Delete Exercise", key=221):
+    del current_program_json_update[mapping[modifiable_exersise]]
+    tab4.error('Program removed')
