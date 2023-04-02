@@ -47,9 +47,6 @@ if enable_dashboard:
     df_session = get_data()
 
 
-
-
-
     @st.cache_data  # 👈 This function will be cached
     def get_pain():
         con = psycopg2.connect(database=database, user=user, password=password, host=host, port="5432")
@@ -273,23 +270,125 @@ if tab3.button("Save Program", disabled=st.session_state['button_enable']):
         del st.session_state[key]
 
 # Tab 4 Update program
+
+# @st.cache_data
+
+def change_edit_state():
+    try:
+        del st.session_state['edited']
+        print('state changed')
+    except:
+        return
+
+# @st.cache_data
+def create_initial_df():
+    # Fetch data from URL here, and then clean it up.
+    df = pd.DataFrame(current_program_json_update)
+    print('get program')
+    return df
+
+def add_edit_state():
+    st.session_state['edited']= True
+    print('table edited')
+
+
 tab4.write('Използвайте само за да промените стойност от съществуваща програма или да премахнете упражнение')
 # list_patients
-patient_update = tab4.selectbox("Изберете пациент", help = 'Името на пациента', options= list_patients)
+patient_update = tab4.selectbox("Изберете пациент", help = 'Името на пациента', options= list_patients, on_change=change_edit_state)
 
 current_program_json_update = requests.get(backend+ f'programs_postgr/{patient_update}').json()
 
+
+if 'edited' not in st.session_state:
+    # st.session_state['edited'] = False
+    df = create_initial_df()
+
 tab4.write('### Program before')
 tab4.write('For reference')
-df = pd.DataFrame(current_program_json_update)
-# df['name'] = df['name'].astype("category").cat.add_categories(tuple_exercises)
-tab4.experimental_data_editor(df[['name', 'reps', 'rest_time']], disabled = True, num_rows='dynamic')
+# print(st.session_state)
+
+def datafr(df):
+    st.session_state['df'] = df
+
+# Clear session state
+for key in st.session_state:
+    del st.session_state[key]
+
+# st.session_state['edited'] = False
+
+
+# Make this run once
+# df = create_initial_df()
+# tab4.experimental_data_editor(df[['name', 'reps', 'rest_time']], disabled = True, num_rows='dynamic')
 
 tab4.write('### Program after')
 tab4.write('make changes here')
 tab4.error('Focus on the first 3 columns', icon="🚨")
-# edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+
+def add_to_table():
+    exercise_selection_4= st.session_state.exercise_select
+    print(exercise_selection_4)
+    current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection_4}').json()
+    df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
+    # df = df.append(df_new_exercise, ignore_index = True)
+    tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
+    # tab4.dataframe(df_new_exercise)
+
+    # tab4.write(df_new_exercise)
+    return df_new_exercise
+    
+tab4.error('UNDER CONSTRUCTION')
+exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', on_change=add_to_table, key = 'exercise_select', disabled=True)
+# current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
+# df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
+
+# else:
+#     edited_df = df.append(df_new_exercise, ignore_index = True)
+
+# st.session_state.edited = False
+
+# edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', key = "data_editor")
+# def edited_table():
+#     st.session_state['edited'] = True
+
+if tab4.button("Add Program"):
+    tab4.write('coming soon')
+    # tab4.write(df_new_exercise)
+    # st.session_state['edited']= True
+    # if st.session_state['edited']== False:
+    # df = df.append(df_new_exercise, ignore_index = True)
+    # del st.session_state['edited']
+
+        # edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', key=111)
+        # edited_df = edited_df.append(df_new_exercise, ignore_index = True)
+    # else:
+#         edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+#         st.session_state['edited'] = True
+#     else:
+#         df = edited_df.append(df_new_exercise, ignore_index = True)
+#         edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+#         st.session_state['edited'] = False
+
+# if st.session_state['edited']== False:
+# try:
+    # edited_df = tab4.experimental_data_editor(edited_df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
 edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+
+    # edited_df = edited_df.append(df_new_exercise, ignore_index = True)
+        # edited_df = df.append(df_new_exercise, ignore_index = True)
+        
+# try:
+# if st.session_state['edited'] == False:
+    # edited_df = tab4.experimental_data_editor(edited_df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', key = "data_editor")
+# except:
+
+# except:
+
+# tab4.dataframe(edited_df)
+
+# edited_df = tab4.experimental_data_editor(df[['name', 'reps'pip, 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+# edited_df = tab4.experimental_data_editor(edited_df, num_rows='dynamic')
+
 
 if tab4.button("Update Program"):
     edited_df['angle_points'] = edited_df['angle_points'].map(lambda x: dict(eval(x)))
