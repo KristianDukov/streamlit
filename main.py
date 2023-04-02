@@ -235,14 +235,12 @@ tab3.write('## Show Exercise config')
 current_program_json['reps'] = reps_count
 current_program_json['rest_time'] = rest_count
 
-
 # Clear session state
 # for key in st.session_state:
 #     del st.session_state[key]
-
+# print(st.session_state)
 if 'full_program' not in st.session_state:
     st.session_state['button_enable'] = True
-
 
 if tab3.button("Add Exercise"):
     tab3.success('Added the exercise successfully', icon="✅")
@@ -250,10 +248,11 @@ if tab3.button("Add Exercise"):
     if 'full_program' not in st.session_state:
         st.session_state['full_program'] = []
         st.session_state['button_enable'] = False
-
     st.session_state['full_program'].append(current_program_json)
+
+
     df = pd.DataFrame(st.session_state['full_program'])
-    tab3.dataframe(df[['name','reps', 'rest_time']])
+    test = st.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
 
 if tab3.button("Delete Exercise", disabled=st.session_state['button_enable']):
     tab3.error('Program removed')
@@ -269,10 +268,10 @@ if tab3.button("Save Program", disabled=st.session_state['button_enable']):
     for key in st.session_state:
         del st.session_state[key]
 
+
+
+
 # Tab 4 Update program
-
-# @st.cache_data
-
 def change_edit_state():
     try:
         del st.session_state['edited']
@@ -298,7 +297,6 @@ patient_update = tab4.selectbox("Изберете пациент", help = 'Им�
 
 current_program_json_update = requests.get(backend+ f'programs_postgr/{patient_update}').json()
 
-
 if 'edited' not in st.session_state:
     # st.session_state['edited'] = False
     df = create_initial_df()
@@ -307,12 +305,12 @@ tab4.write('### Program before')
 tab4.write('For reference')
 # print(st.session_state)
 
-def datafr(df):
-    st.session_state['df'] = df
+# def datafr(df):
+#     st.session_state['df'] = df
 
 # Clear session state
-for key in st.session_state:
-    del st.session_state[key]
+# for key in st.session_state:
+#     del st.session_state[key]
 
 # st.session_state['edited'] = False
 
