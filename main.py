@@ -9,32 +9,48 @@ import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.ticker import FuncFormatter
-
 import requests
 backend = 'http://backend-physio.herokuapp.com/'
+
+database = os.environ.get("DATABASE")
+user = os.environ.get("USER")
+password = os.environ.get("PASSWORD")
+host = os.environ.get("HOST")
 
 
 tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Detailed", "Конфигуратор", "Update program"])
 
-
 enable_dashboard = tab1.checkbox('Enable Dashboard')
 
+def get_patients():
+    con = psycopg2.connect(database=database, user=user, password=password, host=host, port="5432")
+    df = pd.read_sql("""SELECT DISTINCT patient FROM programs WHERE "comment" IS NULL""", con=con)
+    list_patients = list(df['patient'])
+    return list_patients
+list_patients = get_patients()
+
+@st.cache_data  # 👈 This function will be cached
+def get_exercises():
+    con = psycopg2.connect(database=database, user=user, password=password, host=host, port="5432")
+    df = pd.read_sql("""SELECT DISTINCT patient FROM programs WHERE "comment" = 'exercise'""", con=con)
+    list_exercises = list(df['patient'])
+    return list_exercises
+list_exercises = get_exercises()
+
 if enable_dashboard:
-    database = os.environ.get("DATABASE")
-    user = os.environ.get("USER")
-    password = os.environ.get("PASSWORD")
-    host = os.environ.get("HOST")
 
-
-
-    @st.cache  # 👈 This function will be cached
+    @st.cache_data  # 👈 This function will be cached
     def get_data():
         con = psycopg2.connect(database=database, user=user, password=password, host=host, port="5432")
         df = pd.read_sql('select DATE(timestamp_session) as date, exercise, patient, duration, target, completed, min_angle, max_angle, ROW_NUMBER( ) OVER ( PARTITION BY DATE(timestamp_session), exercise, patient  ORDER BY timestamp_session ) as set_number from \"session\"', con=con)
         return df
     df_session = get_data()
 
-    # @st.cache  # 👈 This function will be cached
+
+
+
+
+    @st.cache_data  # 👈 This function will be cached
     def get_pain():
         con = psycopg2.connect(database=database, user=user, password=password, host=host, port="5432")
         df = pd.read_sql('select DATE(timestamp_pain) as date, patient, before_pain, after_pain from \"pain\"', con=con)
@@ -207,13 +223,13 @@ if enable_dashboard:
 
 
 # TAB 3 CONFIGURATOR
-tab3.write('Използвайте за да добавите програма за нов пациент или да добавите упражнение на съществуващ пациент')
+tab3.write('### Използвайте за да добавите програма за нов пациент или за ***overwrite*** na съществуващ пациент')
 patient = tab3.text_input("Patient's name", help = 'Името на пациента')
 
-tuple_exercises = ('balance_left','balance_vstrani','legnal_ruce','legnal_ruce2','legnal_ruce3','legnal_ruce4','legnal_kraka','legnal_kraka2','koremna_presa','legnal_ruceikraka','sednal_ruce','sednal_ruceikraka','sednal_ruceikraka2','sednal_prav','preden_klek','preden_klek2')
+# tuple_exercises = ('balance_left','balance_vstrani','legnal_ruce','legnal_ruce2','legnal_ruce3','legnal_ruce4','legnal_kraka','legnal_kraka2','koremna_presa','legnal_ruceikraka','sednal_ruce','sednal_ruceikraka','sednal_ruceikraka2','sednal_prav','preden_klek','preden_klek2')
 exercise_selection = tab3.selectbox(
     'Select Exercise',
-    tuple_exercises, help = 'Изберете упражнение за модификация')
+    list_exercises, help = 'Изберете упражнение за модификация')
 current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 
 reps_count = tab3.slider('Select Number of Reps?', 0, 20, 10)
@@ -238,14 +254,15 @@ if tab3.button("Add Exercise"):
         st.session_state['full_program'] = []
         st.session_state['button_enable'] = False
 
-    # program_json_full = [{"test": "test"}, current_program_json]
     st.session_state['full_program'].append(current_program_json)
-    st.json(st.session_state['full_program'],expanded=False)
+    df = pd.DataFrame(st.session_state['full_program'])
+    tab3.dataframe(df[['name','reps', 'rest_time']])
 
 if tab3.button("Delete Exercise", disabled=st.session_state['button_enable']):
     tab3.error('Program removed')
     st.session_state['full_program'] = st.session_state['full_program'][:-1]
-    st.json(st.session_state['full_program'],expanded=False)
+    df = pd.DataFrame(st.session_state['full_program'])
+    tab3.write(df[['name','reps', 'rest_time']])
 
 
 if tab3.button("Save Program", disabled=st.session_state['button_enable']):
@@ -257,29 +274,28 @@ if tab3.button("Save Program", disabled=st.session_state['button_enable']):
 
 # Tab 4 Update program
 tab4.write('Използвайте само за да промените стойност от съществуваща програма или да премахнете упражнение')
-patient_update = tab4.text_input("Добавете името на пациента", help = 'Името на пациента', value = 'Kris Dukov')
+# list_patients
+patient_update = tab4.selectbox("Изберете пациент", help = 'Името на пациента', options= list_patients)
 
 current_program_json_update = requests.get(backend+ f'programs_postgr/{patient_update}').json()
-list_exercises = []
-mapping = {}
-for exercise in current_program_json_update:
-    list_exercises.append(exercise['name'])
-    mapping[exercise['name']]= current_program_json_update.index(exercise)
 
-modifiable_exersise = tab4.selectbox(
-    'Изберете упражнение',list_exercises)
+tab4.write('### Program before')
+tab4.write('For reference')
+df = pd.DataFrame(current_program_json_update)
+# df['name'] = df['name'].astype("category").cat.add_categories(tuple_exercises)
+tab4.experimental_data_editor(df[['name', 'reps', 'rest_time']], disabled = True, num_rows='dynamic')
 
-reps_count = tab4.slider('Select Number of Reps?', 0, 20, current_program_json_update[mapping[modifiable_exersise]]['reps'], key=123)
-rest_count = tab4.slider('Select Rest time?', 10, 60, current_program_json_update[mapping[modifiable_exersise]]['rest_time'], step=5, key = 1234)
-current_program_json_update[mapping[modifiable_exersise]]['reps'] = reps_count
-current_program_json_update[mapping[modifiable_exersise]]['rest_time'] = rest_count
-tab4.json(current_program_json_update, expanded=False)
+tab4.write('### Program after')
+tab4.write('make changes here')
+tab4.error('Focus on the first 3 columns', icon="🚨")
+# edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
 
 if tab4.button("Update Program"):
-    full_program_json_update = {'patient': patient_update, 'program_json': current_program_json_update}
+    edited_df['angle_points'] = edited_df['angle_points'].map(lambda x: dict(eval(x)))
+    edited_df['sq'] = edited_df['sq'].map(lambda x: dict(eval(x)))
+
+    edited_df_json = edited_df.to_dict(orient='records')
+    full_program_json_update = {'patient': patient_update, 'program_json': edited_df_json}
     post_request = requests.post(backend + 'update_programs_postgr', json = full_program_json_update)
     tab4.success('Program saved', icon="✅")
-
-if tab4.button("Delete Exercise", key=221):
-    del current_program_json_update[mapping[modifiable_exersise]]
-    tab4.error('Program removed')
