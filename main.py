@@ -69,6 +69,7 @@ if enable_dashboard:
     start_date, end_date  = st.sidebar.date_input(label='Time period', value=[datetime.date(2022,1,1),datetime.date.today()])
 
     filtered = df_session[(df_session['patient'] == patient_selectbox) & (df_session['date']>=start_date)& (df_session['date']<=end_date)]
+    filtered['duration'] = filtered['duration']/60.00
     df_chart = filtered.set_index('date')
 
     ########          TAB 1 Overview
@@ -80,7 +81,8 @@ if enable_dashboard:
     expander.write(filtered)
     tab1.write("## Workout Completion Rate (Daily)")
     sns.set_style('whitegrid')
-    g = sns.catplot(x="exercise", y= '%', col="date",
+    # g = sns.catplot(x="exercise", y= '%', col="date",
+    g = sns.catplot(y= '%', col="date",
                     data=filtered,
                     kind="bar",height=3, aspect=1.2, palette='Set1',errorbar=None)
     for ax in g.axes.flat[1:]:
@@ -98,7 +100,7 @@ if enable_dashboard:
                     color='black', rotation='horizontal', size='large')
     plt.subplots_adjust(wspace=0, bottom=0.18, left=0.06)
     tab1.pyplot(g)
-    tab1.write("## Workout Duration (Daily)")
+    tab1.write("## Workout Duration in Minutes (Daily)")
 
     duration = sns.catplot(y= 'duration', col="date",
                     data=filtered,
@@ -106,15 +108,16 @@ if enable_dashboard:
     for ax in duration.axes.flat[1:]:
         sns.despine(ax=ax, left=True)
     for ax in duration.axes.flat:
-        ax.set_ylabel('Duration in seconds')
+        ax.set_ylabel('Duration in minutes')
         ax.set_xlabel(ax.get_title())
-        ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{0:.0f}'.format(y))) 
+        # ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{0:.0f}'.format(y))) 
         ax.set_title('')
         ax.margins(x=0.3) # slightly more margin as a separation
         for p in ax.patches:
             ax.text(p.get_x() + 0.2, 
                     p.get_height() * 1.02, 
-                    '{0:.0f}'.format(p.get_height()), 
+                    # '{0:.0f}'.format(p.get_height()), 
+                    '{0:.2f}'.format(p.get_height()), 
                     color='black', rotation='horizontal', size='large')
     plt.subplots_adjust(wspace=0, bottom=0.18, left=0.06)
 
@@ -229,11 +232,15 @@ exercise_selection = tab3.selectbox(
     list_exercises, help = 'Изберете упражнение за модификация')
 current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 
-reps_count = tab3.slider('Select Number of Reps?', 0, 20, 10)
-rest_count = tab3.slider('Select Rest time?', 10, 20, 60, step=5)
+reps_count = tab3.slider('Select Number of Reps?', 0, 50, 10)
+rest_count = tab3.slider('Select Rest time? (in seconds)', 0, 300, 60, step=30)
+series_count = tab3.slider('Select Number of series', 1, 5, 1)
+
 tab3.write('## Show Exercise config')
 current_program_json['reps'] = reps_count
 current_program_json['rest_time'] = rest_count
+
+
 
 # Clear session state
 # for key in st.session_state:
@@ -252,7 +259,10 @@ if tab3.button("Add Exercise"):
 
 
     df = pd.DataFrame(st.session_state['full_program'])
-    test = st.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
+    # keep this one if same exercises can be one after another
+    # df = pd.concat([df] * series_count)
+
+    test = tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
 
 if tab3.button("Delete Exercise", disabled=st.session_state['button_enable']):
     tab3.error('Program removed')
@@ -263,7 +273,9 @@ if tab3.button("Delete Exercise", disabled=st.session_state['button_enable']):
 
 if tab3.button("Save Program", disabled=st.session_state['button_enable']):
     tab3.success('Program saved', icon="✅")
-    full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']}
+    # full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']}
+    # Keep this one if they need to follow a specific order
+    full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']*series_count}
     post_request = requests.post(backend + 'insert_programs_postgr', json = full_program_json)
     for key in st.session_state:
         del st.session_state[key]
