@@ -117,7 +117,7 @@ if enable_dashboard:
             ax.text(p.get_x() + 0.2, 
                     p.get_height() * 1.02, 
                     # '{0:.0f}'.format(p.get_height()), 
-                    '{0:.2f}'.format(p.get_height()), 
+                    '{0:.1f}'.format(p.get_height()), 
                     color='black', rotation='horizontal', size='large')
     plt.subplots_adjust(wspace=0, bottom=0.18, left=0.06)
 
@@ -181,24 +181,24 @@ if enable_dashboard:
     plt.subplots_adjust(wspace=0, bottom=0.18, left=0.06)
     tab2.pyplot(reps_set)
 
-    tab2.write("# Angle Progression (daily)")
-    df_min_max = filtered.groupby('date').agg(min_angle = ('min_angle', 'min'), max_angle = ('max_angle', 'max')).reset_index()
-    df_min_max_melt = pd.melt(df_min_max, id_vars=['date'], var_name= 'Angle_type', value_name='Angle')
+    # tab2.write("# Angle Progression (daily)")
+    # df_min_max = filtered.groupby('date').agg(min_angle = ('min_angle', 'min'), max_angle = ('max_angle', 'max')).reset_index()
+    # df_min_max_melt = pd.melt(df_min_max, id_vars=['date'], var_name= 'Angle_type', value_name='Angle')
 
 
-    fig, ax = plt.subplots()
-    plt.figure(figsize = (10,2))
-    min_max = sns.lineplot(x='date', 
-                y='Angle',
-                hue='Angle_type', 
-                palette=['b','r'],
-                data=df_min_max_melt)
+    # fig, ax = plt.subplots()
+    # plt.figure(figsize = (10,2))
+    # min_max = sns.lineplot(x='date', 
+    #             y='Angle',
+    #             hue='Angle_type', 
+    #             palette=['b','r'],
+    #             data=df_min_max_melt)
 
 
-    tab2.pyplot(min_max.figure)
-    tab2.write("# Alternative Angle Progression (daily)")
+    # tab2.pyplot(min_max.figure)
+    # tab2.write("# Alternative Angle Progression (daily)")
 
-    tab2.area_chart(df_min_max.set_index('date'))
+    # tab2.area_chart(df_min_max.set_index('date'))
 
     tab2.write("# Workout Duration (daily)")
 
@@ -224,7 +224,7 @@ if enable_dashboard:
 
 # TAB 3 CONFIGURATOR
 tab3.write('### Използвайте за да добавите програма за нов пациент или за ***overwrite*** na съществуващ пациент')
-patient = tab3.text_input("Patient's name", help = 'Името на пациента')
+patient = tab3.text_input("Patient's name", help = 'Името на пациента').replace(' ', '_').lower()
 
 # tuple_exercises = ('balance_left','balance_vstrani','legnal_ruce','legnal_ruce2','legnal_ruce3','legnal_ruce4','legnal_kraka','legnal_kraka2','koremna_presa','legnal_ruceikraka','sednal_ruce','sednal_ruceikraka','sednal_ruceikraka2','sednal_prav','preden_klek','preden_klek2')
 exercise_selection = tab3.selectbox(
