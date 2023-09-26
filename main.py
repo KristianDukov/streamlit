@@ -103,7 +103,7 @@ if enable_dashboard:
     tab1.write("## Workout Duration in Minutes (Daily)")
 
     duration = sns.catplot(y= 'duration', col="date",
-                    data=filtered,
+                    data=filtered.groupby('date')['duration'].sum().reset_index(),
                     kind="bar",height=3, aspect=1.2, palette='Set1',errorbar=None)
     for ax in duration.axes.flat[1:]:
         sns.despine(ax=ax, left=True)
@@ -117,7 +117,7 @@ if enable_dashboard:
             ax.text(p.get_x() + 0.2, 
                     p.get_height() * 1.02, 
                     # '{0:.0f}'.format(p.get_height()), 
-                    '{0:.1f}'.format(p.get_height()), 
+                    '{0:.2f}'.format(p.get_height()), 
                     color='black', rotation='horizontal', size='large')
     plt.subplots_adjust(wspace=0, bottom=0.18, left=0.06)
 
@@ -200,7 +200,7 @@ if enable_dashboard:
 
     # tab2.area_chart(df_min_max.set_index('date'))
 
-    tab2.write("# Workout Duration (daily)")
+    tab2.write("# Workout Duration (daily) per Set")
 
     duration_set = sns.catplot(x="set_number", y= 'duration', col="date",
                     data=df_reps_set,
@@ -208,7 +208,7 @@ if enable_dashboard:
     for ax in duration_set.axes.flat[1:]:
         sns.despine(ax=ax, left=True)
     for ax in duration_set.axes.flat:
-        ax.set_ylabel('Reps per Set')
+        ax.set_ylabel('Duration per Set')
         ax.set_xlabel(ax.get_title())
         ax.yaxis.set_major_formatter(FuncFormatter(lambda y, _: '{:.0f}'.format(y))) 
         ax.set_title('')
@@ -216,7 +216,7 @@ if enable_dashboard:
         for p in ax.patches:
             ax.text(p.get_x() + 0.2, 
                     p.get_height() * 1.02, 
-                    '{:.0f}'.format(p.get_height()), 
+                    '{:.2f} min'.format(p.get_height()), 
                     color='black', rotation='horizontal', size='large')
     plt.subplots_adjust(wspace=0, bottom=0.18, left=0.06)
     tab2.pyplot(duration_set)
@@ -233,13 +233,12 @@ exercise_selection = tab3.selectbox(
 current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 
 reps_count = tab3.slider('Select Number of Reps?', 0, 50, 10)
-rest_count = tab3.slider('Select Rest time? (in seconds)', 0, 300, 60, step=30)
+rest_count = tab3.slider('Select Rest time? (in seconds)', 0, 300, 0, step=30)
 series_count = tab3.slider('Select Number of series', 1, 5, 1)
 
 tab3.write('## Show Exercise config')
 current_program_json['reps'] = reps_count
 current_program_json['rest_time'] = rest_count
-
 
 
 # Clear session state
@@ -248,6 +247,7 @@ current_program_json['rest_time'] = rest_count
 # print(st.session_state)
 if 'full_program' not in st.session_state:
     st.session_state['button_enable'] = True
+    # df =pd.DataFrame(columns=['name', 'reps', 'rest_time'])
 
 if tab3.button("Add Exercise"):
     tab3.success('Added the exercise successfully', icon="✅")
@@ -259,23 +259,27 @@ if tab3.button("Add Exercise"):
 
 
     df = pd.DataFrame(st.session_state['full_program'])
-    # keep this one if same exercises can be one after another
-    # df = pd.concat([df] * series_count)
+    if series_count >= 2:
+        print('HERE')
+        list_current_program = [current_program_json]*(series_count-1)
+        st.session_state['full_program'].append(list_current_program)
+        df = pd.concat([df,pd.DataFrame(list_current_program)])
+        # print(len(st.session_state['full_program']))
 
-    test = tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
+    test = tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic', key = 'usual')
 
 if tab3.button("Delete Exercise", disabled=st.session_state['button_enable']):
-    tab3.error('Program removed')
     st.session_state['full_program'] = st.session_state['full_program'][:-1]
     df = pd.DataFrame(st.session_state['full_program'])
     tab3.write(df[['name','reps', 'rest_time']])
+    tab3.error('Program removed')
 
 
 if tab3.button("Save Program", disabled=st.session_state['button_enable']):
     tab3.success('Program saved', icon="✅")
     # full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']}
     # Keep this one if they need to follow a specific order
-    full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']*series_count}
+    full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']}
     post_request = requests.post(backend + 'insert_programs_postgr', json = full_program_json)
     for key in st.session_state:
         del st.session_state[key]
@@ -315,7 +319,7 @@ if 'edited' not in st.session_state:
 
 tab4.write('### Program before')
 tab4.write('For reference')
-# print(st.session_state)
+tab4.dataframe(current_program_json_update)
 
 # def datafr(df):
 #     st.session_state['df'] = df
@@ -337,18 +341,18 @@ tab4.error('Focus on the first 3 columns', icon="🚨")
 
 def add_to_table():
     exercise_selection_4= st.session_state.exercise_select
-    print(exercise_selection_4)
     current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection_4}').json()
     df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
     # df = df.append(df_new_exercise, ignore_index = True)
-    tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
+    # tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
     # tab4.dataframe(df_new_exercise)
 
     # tab4.write(df_new_exercise)
     return df_new_exercise
     
 tab4.error('UNDER CONSTRUCTION')
-exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', on_change=add_to_table, key = 'exercise_select', disabled=True)
+# exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', on_change=add_to_table, key = 'exercise_select', disabled=False)
+exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', key = 'exercise_select', disabled=False)
 # current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 # df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
 
@@ -362,12 +366,12 @@ exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 
 #     st.session_state['edited'] = True
 
 if tab4.button("Add Program"):
-    tab4.write('coming soon')
     # tab4.write(df_new_exercise)
     # st.session_state['edited']= True
     # if st.session_state['edited']== False:
     # df = df.append(df_new_exercise, ignore_index = True)
     # del st.session_state['edited']
+    df_added_exercise = add_to_table()
 
         # edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', key=111)
         # edited_df = edited_df.append(df_new_exercise, ignore_index = True)
@@ -382,7 +386,8 @@ if tab4.button("Add Program"):
 # if st.session_state['edited']== False:
 # try:
     # edited_df = tab4.experimental_data_editor(edited_df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
-edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+# edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+    edited_df = tab4.experimental_data_editor(pd.concat([df_added_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']],df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']]]), num_rows='dynamic')
 
     # edited_df = edited_df.append(df_new_exercise, ignore_index = True)
         # edited_df = df.append(df_new_exercise, ignore_index = True)
