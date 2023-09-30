@@ -39,7 +39,7 @@ list_exercises = get_exercises()
 
 if enable_dashboard:
 
-    @st.cache_data  # 👈 This function will be cached
+    # @st.cache_data  # 👈 This function will be cached
     def get_data():
         con = psycopg2.connect(database=database, user=user, password=password, host=host, port="5432")
         df = pd.read_sql('select DATE(timestamp_session) as date, exercise, patient, duration, target, completed, min_angle, max_angle, ROW_NUMBER( ) OVER ( PARTITION BY DATE(timestamp_session), exercise, patient  ORDER BY timestamp_session ) as set_number from \"session\"', con=con)
