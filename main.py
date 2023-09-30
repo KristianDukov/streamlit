@@ -344,7 +344,7 @@ def add_to_table():
     current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection_4}').json()
     df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
     # df = df.append(df_new_exercise, ignore_index = True)
-     tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
+    tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
     # tab4.dataframe(df_new_exercise)
 
     # tab4.write(df_new_exercise)
