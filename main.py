@@ -319,7 +319,7 @@ if 'edited' not in st.session_state:
 
 tab4.write('### Program before')
 tab4.write('For reference')
-tab4.dataframe(current_program_json_update)
+# tab4.dataframe(current_program_json_update)
 
 # def datafr(df):
 #     st.session_state['df'] = df
@@ -344,15 +344,15 @@ def add_to_table():
     current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection_4}').json()
     df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
     # df = df.append(df_new_exercise, ignore_index = True)
-    # tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
+     tab4.experimental_data_editor(df_new_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic', use_container_width=True)
     # tab4.dataframe(df_new_exercise)
 
     # tab4.write(df_new_exercise)
     return df_new_exercise
     
 tab4.error('UNDER CONSTRUCTION')
-# exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', on_change=add_to_table, key = 'exercise_select', disabled=False)
-exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', key = 'exercise_select', disabled=False)
+exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', on_change=add_to_table, key = 'exercise_select', disabled=False)
+# exercise_selection_4 = tab4.selectbox('Select Exercise', list_exercises, help = 'Изберете упражнение за добавяне', key = 'exercise_select', disabled=False)
 # current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 # df_new_exercise = pd.json_normalize(current_program_json, max_level=0)
 
@@ -386,8 +386,8 @@ if tab4.button("Add Program"):
 # if st.session_state['edited']== False:
 # try:
     # edited_df = tab4.experimental_data_editor(edited_df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
-# edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
-    edited_df = tab4.experimental_data_editor(pd.concat([df_added_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']],df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']]]), num_rows='dynamic')
+    edited_df = tab4.experimental_data_editor(df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']], num_rows='dynamic')
+    # edited_df = tab4.experimental_data_editor(pd.concat([df_added_exercise[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']],df[['name', 'reps', 'rest_time', 'orientation', 'url_tutorial', 'side', 'elements', 'angle_points', 'sq']]]), num_rows='dynamic')
 
     # edited_df = edited_df.append(df_new_exercise, ignore_index = True)
         # edited_df = df.append(df_new_exercise, ignore_index = True)
