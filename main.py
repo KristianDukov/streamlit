@@ -223,34 +223,67 @@ if enable_dashboard:
 
 
 # TAB 3 CONFIGURATOR
+
+def show_program():
+    if 'full_program' not in st.session_state:
+        df = pd.DataFrame(columns=['name','reps', 'rest_time'])
+    if len(st.session_state['full_program']) == 0:
+        df = pd.DataFrame(columns=['name','reps', 'rest_time'])
+    else:
+        df = pd.DataFrame(st.session_state['full_program'])
+
+    # if series_count >= 2:
+    #     list_current_program = [current_program_json]*(series_count-1)
+    #     st.session_state['full_program'].append(list_current_program)
+    #     df = pd.concat([df,pd.DataFrame(list_current_program)])
+    # else:
+    #     st.session_state['full_program'].append(current_program_json)
+    tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic', key = 'show_program')
+
+
 tab3.write('### Използвайте за да добавите програма за нов пациент или за ***overwrite*** na съществуващ пациент')
 patient = tab3.text_input("Patient's name", help = 'Името на пациента').replace(' ', '_').lower()
 
-# tuple_exercises = ('balance_left','balance_vstrani','legnal_ruce','legnal_ruce2','legnal_ruce3','legnal_ruce4','legnal_kraka','legnal_kraka2','koremna_presa','legnal_ruceikraka','sednal_ruce','sednal_ruceikraka','sednal_ruceikraka2','sednal_prav','preden_klek','preden_klek2')
 exercise_selection = tab3.selectbox(
     'Select Exercise',
-    list_exercises, help = 'Изберете упражнение за модификация')
+    list_exercises, help = 'Изберете упражнение за модификация', on_change=show_program)
 current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 
 reps_count = tab3.slider('Select Number of Reps?', 0, 50, 10)
 rest_count = tab3.slider('Select Rest time? (in seconds)', 0, 300, 60, step=30)
-series_count = tab3.slider('Select Number of series', 1, 5, 1)
+# series_count = tab3.slider('Select Number of series', 1, 5, 1, on_change=show_program)
+series_count = tab3.slider('Select Number of series', 1, 5, 1, on_change=show_program)
 
 tab3.write('## Show Exercise config')
 current_program_json['reps'] = reps_count
 current_program_json['rest_time'] = rest_count
 
 
-
 # Clear session state
 # for key in st.session_state:
 #     del st.session_state[key]
-# print(st.session_state)
 if 'full_program' not in st.session_state:
     st.session_state['button_enable'] = True
 
-if tab3.button("Add Exercise"):
+
+
+# show_program()
+
+
+# if len(st.session_state['full_program']) == 0:
+#     df = pd.DataFrame(columns=['name','reps', 'rest_time'])
+#     # test = tab3.experimental_data_editor(df, disabled=True,  num_rows='dynamic')
+# else:
+#     df = pd.DataFrame(st.session_state['full_program'])
+    
+# test = tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
+
+
+
+# if tab3.button("Add Exercise", on_click=show_program):
+if tab3.button("Add Exercise",):
     tab3.success('Added the exercise successfully', icon="✅")
+    # df2 = pd.DataFrame(st.session_state['full_program'])
 
     if 'full_program' not in st.session_state:
         st.session_state['full_program'] = []
@@ -258,24 +291,31 @@ if tab3.button("Add Exercise"):
     st.session_state['full_program'].append(current_program_json)
 
 
-    df = pd.DataFrame(st.session_state['full_program'])
-    # keep this one if same exercises can be one after another
-    # df = pd.concat([df] * series_count)
+    df2 = pd.DataFrame(st.session_state['full_program'])
+    # if series_count >= 2:
+    #     list_current_program = [current_program_json]*(series_count-1)
+    #     st.session_state['full_program'].append(list_current_program)
+    #     df2 = pd.concat([df2,pd.DataFrame(list_current_program)])
 
-    test = tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
+    test = tab3.experimental_data_editor(df2[['name','reps', 'rest_time']], disabled=False,  num_rows='dynamic', key= 'added')
+    # test = tab3.experimental_data_editor(df[['name','reps', 'rest_time']], disabled=True,  num_rows='dynamic')
+
 
 if tab3.button("Delete Exercise", disabled=st.session_state['button_enable']):
-    tab3.error('Program removed')
+# if tab3.button("Delete Exercise"):
     st.session_state['full_program'] = st.session_state['full_program'][:-1]
     df = pd.DataFrame(st.session_state['full_program'])
+    tab3.error('Program removed')
     tab3.write(df[['name','reps', 'rest_time']])
+    
+
 
 
 if tab3.button("Save Program", disabled=st.session_state['button_enable']):
     tab3.success('Program saved', icon="✅")
     # full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']}
     # Keep this one if they need to follow a specific order
-    full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']*series_count}
+    full_program_json = {'patient': patient, 'program_json': st.session_state['full_program']}
     post_request = requests.post(backend + 'insert_programs_postgr', json = full_program_json)
     for key in st.session_state:
         del st.session_state[key]
