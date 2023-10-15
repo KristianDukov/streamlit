@@ -224,6 +224,9 @@ if enable_dashboard:
 
 # TAB 3 CONFIGURATOR
 
+# if 'full_program' not in st.session_state:
+#     st.session_state['full_program'] = []
+
 def show_program():
     if 'full_program' not in st.session_state:
         df = pd.DataFrame(columns=['name','reps', 'rest_time'])
@@ -246,13 +249,14 @@ patient = tab3.text_input("Patient's name", help = 'Името на пациен
 
 exercise_selection = tab3.selectbox(
     'Select Exercise',
-    list_exercises, help = 'Изберете упражнение за модификация', on_change=show_program)
+    # list_exercises, help = 'Изберете упражнение за модификация', on_change=show_program)
+    list_exercises, help = 'Изберете упражнение за модификация')
 current_program_json = requests.get(backend+ f'programs_postgr/{exercise_selection}').json()
 
 reps_count = tab3.slider('Select Number of Reps?', 0, 50, 10)
 rest_count = tab3.slider('Select Rest time? (in seconds)', 0, 300, 60, step=30)
 # series_count = tab3.slider('Select Number of series', 1, 5, 1, on_change=show_program)
-series_count = tab3.slider('Select Number of series', 1, 5, 1, on_change=show_program)
+series_count = tab3.slider('Select Number of series', 1, 5, 1)
 
 tab3.write('## Show Exercise config')
 current_program_json['reps'] = reps_count
